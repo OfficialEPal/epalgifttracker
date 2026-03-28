@@ -20,7 +20,7 @@ A lightweight **Tampermonkey** script designed to track, count, and filter gifts
 1.  Install the [Tampermonkey](https://www.tampermonkey.net/) extension for your browser (Chrome, Firefox, Edge).
 2.  Click the link below to install the script:
     👉 **[INSTALL THE SCRIPT](https://raw.githubusercontent.com/DebonairFab/epalgifttracker/refs/heads/main/Epal%20Gift%20Counter)**
-3.  Navigate to any [Epal Chatroom](https://www.epal.gg/chill/chatroom/) and the tracker will appear!
+3.  Navigate to any [Epal Chatroom](https://www.epal.gg/arcade/) and the tracker will appear!
 
 ---
 
