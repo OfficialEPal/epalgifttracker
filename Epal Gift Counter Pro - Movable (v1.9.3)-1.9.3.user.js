@@ -2,7 +2,9 @@
 // @name         Epal Gift Counter Pro - Movable (v1.9.3)
 // @namespace    http://tampermonkey.net/
 // @version      1.9.3
-// @description  Tracker with Timer, target filter and moveable window.
+// @description  Tracker with Timer, target filter and moveable window. 
+// @downloadURL  https://github.com/DebonairFab/epalgifttracker/raw/refs/heads/main/Epal%20Gift%20Counter%20Pro%20-%20Movable%20(v1.9.3)-1.9.3.user.js
+// @updateURL    https://github.com/DebonairFab/epalgifttracker/raw/refs/heads/main/Epal%20Gift%20Counter%20Pro%20-%20Movable%20(v1.9.3)-1.9.3.user.js
 // @author       Fab
 // @match        https://www.epal.gg/chill/chatroom/*
 // @grant        none
