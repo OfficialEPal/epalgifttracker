@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Epal Gift Counter
 // @namespace    http://tampermonkey.net/
-// @version      1.9.4
+// @version      1.9.5
 // @description  Tracker with Timer, target filter and moveable window. 
 // @downloadURL  https://raw.githubusercontent.com/DebonairFab/epalgifttracker/refs/heads/main/Epal%20Gift%20Counter.user.js
 // @updateURL    https://raw.githubusercontent.com/DebonairFab/epalgifttracker/refs/heads/main/Epal%20Gift%20Counter.user.js
@@ -36,7 +36,7 @@
 
     dashboard.innerHTML = `
         <div id="drag-handle" style="font-weight:bold; color:#ff4d89; margin-bottom:12px; display:flex; justify-content:space-between; font-size:11px; letter-spacing:1px; cursor:move; padding-bottom:5px; border-bottom:1px solid rgba(255,77,137,0.2);">
-            <span>🎁 GIFT TRACKER v1.9.3</span>
+            <span>🎁 GIFT TRACKER </span>
             <span id="status-indicator" style="color:#ff4d4d;">OFF</span>
         </div>
 
