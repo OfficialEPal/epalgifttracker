@@ -46,7 +46,7 @@
         </div>
 
         <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
-            <input type="number" id="input-minutes" value="30" min="1" style="width:45px; background:#222; border:1px solid #444; color:white; border-radius:4px; padding:4px; font-size:12px;">
+            <input type="number" id="input-minutes" value="03" min="1" style="width:45px; background:#222; border:1px solid #444; color:white; border-radius:4px; padding:4px; font-size:12px;">
             <span style="font-size:11px; color:#ccc;">min</span>
             <div id="display-timer" style="flex:1; text-align:right; font-family:monospace; font-size:16px; font-weight:bold; color:#4CAF50;">00:00</div>
         </div>
