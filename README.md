@@ -63,6 +63,9 @@ To track a specific person, type their name exactly as it appears on Epal.
 ### Sharing the Results
 When you click **SEND**, the script generates a message and sends it to the chat instantly:
 
+<p align="center">
+  <img src="https://s4.ezgif.com/tmp/ezgif-4d3ac94c0f28d8ab.gif" alt="Démonstration animée" width="300">
+</p>
 ```text
 GIFT LEADERBOARD (Everyone) 🏆
 1. PlayerA : 10.50 $
