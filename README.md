@@ -34,7 +34,7 @@ To use this script, you need a browser extension that can run "UserScripts" (suc
     Go to [tampermonkey.net](https://www.tampermonkey.net/) and install the version for your browser (Chrome, Firefox, Edge).
 2.  **Import the Script:**
     👉 **[CLICK HERE TO INSTALL THE SCRIPT](https://github.com/DebonairFab/epalgifttracker/raw/refs/heads/main/Epal%20Gift%20Counter.user.js)**
-    <details><summary><b>*Note:*</b></summary> If the link opens as text, copy the code, click the Tampermonkey icon > "Create a new script", paste it, and save (Ctrl+S).*</details>
+    <details><summary><b>Note:</b></summary> If the link opens as text, copy the code, click the Tampermonkey icon > "Create a new script", paste it, and save (Ctrl+S).*</details>
 3.  **Activate:**
     Navigate to any [Epal Chatroom](https://www.epal.gg/arcade/). The tracker will appear on the left side of your screen.
 
@@ -75,7 +75,7 @@ GIFT LEADERBOARD (Everyone) 🏆
 ```
 
 ---
-💎 Supported Gift Prices
+<details><summary>💎 Supported Gift Prices: </summary>
 
 You'll find here all the gift currently supported (if a gift is not on this list it'll go under default with a value of 0) :
 
@@ -119,6 +119,7 @@ You'll find here all the gift currently supported (if a gift is not on this list
         "EE":0, 
         "Turkish Coffee":0, 
         "Default": 0
+</details>
 
 
 ---
