@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Epal Gift Tracker
+// @name         Epal Gift Tracker - Cloud Sync & Logs
 // @namespace    http://tampermonkey.net/
-// @version      2.6.0
-// @description  Lightweight & Compact leaderboard for small chat limits
+// @version      2.7.0
+// @description  Fetches prices from GitHub + Console Logging
 // @author       Fab
 // @match        https://www.epal.gg/chill/chatroom/*
 // @grant        none
@@ -11,25 +11,34 @@
 (function() {
     'use strict';
 
+    const JSON_URL = "https://raw.githubusercontent.com/DebonairFab/epalgifttracker/refs/heads/main/prices.json";
     const customIcon = "https://raw.githubusercontent.com/DebonairFab/epalgifttracker/refs/heads/main/Sans%20titre.png";
 
-    const giftPrices = {
-        "Springtime Honey": 0, "Rose": 1, "Thumbs Up": 2, "Forever With You": 600,
-        "Sweet Treat": 3, "Magic Donut": 5, "Party With me": 7, "Heavenly Match": 2000,
-        "Dancing Ryan": 10, "Soft Touch": 20, "My Little Angel": 50, "Cruise With Me": 100,
-        "Only Mine": 300, "Golden Ascension": 1000, "Ace Reign": 1600, "Lolipop": 0.20,
-        "Luv ya": 0.50, "Sweet Claw": 1, "Energy Drink": 2, "Disco Dancing": 2,
-        "Marry me": 5, "Eternal Love": 10, "Streamer gear": 10, "Cyberpunk": 20,
-        "Space shuttle": 20, "Pink Dream": 50, "Halloween Vibe": 50, "Lucky Draw": 50,
-        "Fairy Land": 50, "Be With You": 50, "Romantic Trip": 50, "Vanilla Sky": 50,
-        "Kitten uwu": 100, "Bunny uwu": 100, "Sweet Carnival": 200, "Hypercar": 200,
-        "Loving castle": 500, "Curious Locket": 5, "EE":0, "Turkish Coffee":0, "Default": 0
-    };
-
-    let totalGifts = 0, totalValue = 0, isRunning = false, donors = {};
+    let giftPrices = { "Rose": 1, "Default": 0 };
+    let totalValue = 0, isRunning = false, donors = {};
     let timerInterval = null, timeLeft = 0;
 
-    // --- INTERFACE (CSS INJECTED) ---
+    async function syncPrices() {
+        try {
+            const response = await fetch(JSON_URL);
+            if (!response.ok) throw new Error("Sync failed");
+            giftPrices = await response.json();
+            console.log("%c✅ Prices Synced:", "color: #00d4ff; font-weight: bold;", giftPrices);
+            
+            const indicator = document.getElementById('status-indicator');
+            if(indicator) {
+                indicator.innerText = "SYNCED"; indicator.style.color = "#00d4ff";
+                setTimeout(() => { 
+                    indicator.innerText = isRunning ? "LIVE" : "OFF";
+                    indicator.style.color = isRunning ? "#4CAF50" : "#ff4d4d";
+                }, 2000);
+            }
+        } catch (error) {
+            console.error("❌ Sync Error:", error);
+        }
+    }
+
+    // --- INTERFACE ---
     const dashboard = document.createElement('div');
     dashboard.id = "epal-tracker-pro";
     dashboard.style = `position: fixed; top: 100px; left: 20px; z-index: 99999; background: rgba(15, 15, 15, 0.98); color: white; padding: 18px; border-radius: 12px; font-family: 'Segoe UI', sans-serif; border: 1px solid #ff4d89; min-width: 260px; box-shadow: 0 15px 40px rgba(0,0,0,0.6);`;
@@ -39,8 +48,9 @@
             <span>🎁 GIFT TRACKER</span>
             <span id="status-indicator" style="color:#ff4d4d;">OFF</span>
         </div>
-        <div style="margin-bottom:10px;">
-            <input type="text" id="input-target" placeholder="Target name..." style="width:100%; background:#222; border:1px solid #444; color:#00d4ff; border-radius:4px; padding:6px; font-size:12px; outline:none; box-sizing:border-box;">
+        <div style="display:flex; gap:4px; margin-bottom:10px;">
+            <input type="text" id="input-target" placeholder="Target..." style="flex:3; background:#222; border:1px solid #444; color:#00d4ff; border-radius:4px; padding:6px; font-size:12px; outline:none;">
+            <button id="btn-sync" title="Sync Prices" style="flex:1; background:#333; border:1px solid #444; color:white; border-radius:4px; cursor:pointer; font-size:10px;">🔄</button>
         </div>
         <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
             <input type="number" id="input-minutes" value="3" min="1" style="width:45px; background:#222; border:1px solid #444; color:white; border-radius:4px; padding:4px; font-size:12px;">
@@ -49,9 +59,9 @@
         </div>
         <div id="top-donors" style="background:rgba(255,255,255,0.03); padding:8px; border-radius:6px; margin-bottom:12px; font-size:12px; min-height:40px; border-left:2px solid #ff4d89;">Waiting...</div>
         <div style="margin-bottom:12px;">
-            <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+            <div style="display:flex; align-items:center; gap:8px;">
                 <span id="epal-value-num" style="font-size:1.8em; font-weight:bold; color:#ffce00;">0.00</span>
-                <img src="${customIcon}" style="width:24px; height:24px; object-fit:contain;" onerror="this.style.display='none'">
+                <img src="${customIcon}" style="width:24px; height:24px; object-fit:contain;">
             </div>
         </div>
         <div style="display:flex; gap:6px;">
@@ -62,22 +72,12 @@
     `;
     document.body.appendChild(dashboard);
 
-    // --- DRAG ---
-    let isDragging = false, offsetX, offsetY;
-    document.getElementById('drag-handle').onmousedown = (e) => { isDragging = true; offsetX = e.clientX - dashboard.offsetLeft; offsetY = e.clientY - dashboard.offsetTop; };
-    window.onmousemove = (e) => { if (isDragging) { dashboard.style.left = (e.clientX - offsetX) + "px"; dashboard.style.top = (e.clientY - offsetY) + "px"; } };
-    window.onmouseup = () => { isDragging = false; };
-
-    // --- LOGIC ---
     const updateUI = () => {
         document.getElementById('epal-value-num').innerText = totalValue.toFixed(2);
         const sorted = Object.entries(donors).sort(([,a],[,b]) => b-a).slice(0,3);
         let html = "";
         sorted.forEach((d, i) => {
-            html += `<div style="display:flex; justify-content:space-between; margin-bottom:3px;">
-                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:140px; color:#eee;">#${i+1} ${d[0]}</span>
-                <span style="color:#ffce00; font-weight:bold;">${d[1].toFixed(2)} $</span>
-            </div>`;
+            html += `<div style="display:flex; justify-content:space-between; margin-bottom:3px;"><span>#${i+1} ${d[0]}</span><span style="color:#ffce00; font-weight:bold;">${d[1].toFixed(2)} $</span></div>`;
         });
         document.getElementById('top-donors').innerHTML = html || "Waiting...";
     };
@@ -85,77 +85,102 @@
     const processNode = (node) => {
         if (!isRunning || node.nodeType !== 1) return;
         const giftPart = node.querySelector('.epal-live-chat.text-positive-variant-normal');
+        
         if (giftPart && giftPart.innerText.includes("gifted")) {
             const fullText = giftPart.innerText;
             const targetFilter = document.getElementById('input-target').value.trim().toLowerCase();
+            
             if (targetFilter !== "" && !fullText.toLowerCase().includes("gifted " + targetFilter)) return;
+
             const messageContainer = giftPart.closest('.hover\\:bg-surface-element-normal');
             let donorName = "User";
             if (messageContainer) {
                 const donorElem = messageContainer.querySelector('.epal-name-gold, .epal-name-vip, .text-primary-variant-normal');
                 if (donorElem) donorName = donorElem.innerText.trim();
             }
+
             const qtyMatch = fullText.match(/x(\d+)\s*$/);
             if (qtyMatch) {
                 const quantity = parseInt(qtyMatch[1]);
-                let foundGift = "Default";
-                for (let giftKey in giftPrices) { if (fullText.toLowerCase().includes(giftKey.toLowerCase())) { foundGift = giftKey; break; } }
-                const amount = giftPrices[foundGift] * quantity;
-                totalGifts += quantity; totalValue += amount; donors[donorName] = (donors[donorName] || 0) + amount;
+                let foundGift = null;
+                
+                for (let giftKey in giftPrices) { 
+                    if (fullText.toLowerCase().includes(giftKey.toLowerCase())) { foundGift = giftKey; break; } 
+                }
+
+                const price = foundGift ? giftPrices[foundGift] : 0;
+                const totalAmount = price * quantity;
+
+                // --- LOGS DANS LA CONSOLE ---
+                if (foundGift) {
+                    console.log(`%c🎁 GIFT: ${foundGift} x${quantity} from ${donorName} ($${totalAmount.toFixed(2)})`, "color: #4CAF50; font-weight: bold;");
+                } else {
+                    console.warn(`%c❓ UNKNOWN GIFT detected: "${fullText}" (from ${donorName})`, "color: #ff9800; font-style: italic;");
+                }
+
+                totalValue += totalAmount; 
+                donors[donorName] = (donors[donorName] || 0) + totalAmount;
                 updateUI();
             }
         }
     };
 
-    const copyAndSend = () => {
+    // --- ENVOI DANS LE CHAT ---
+    const sendLeaderboard = () => {
         const target = document.getElementById('input-target').value.trim() || "Everyone";
         const sorted = Object.entries(donors).sort(([,a],[,b]) => b-a).slice(0,3);
+        const medals = ["🥇","🥈","🥉"];
+        
+        let msg = `🏆 TOP DONORS (${target})\n`;
+        sorted.forEach((d, i) => msg += `${medals[i]} ${d[0]}: ${d[1].toFixed(1)}$\n`);
+        if (sorted.length === 0) msg += "Waiting for gifts...";
 
-        // Version Ultra-compacte (Espace optimisé)
-        let text = `🏆 TOP DONORS (${target})\n`;
-        const icons = ["🥇","🥈","🥉"];
-        sorted.forEach((d, i) => {
-            text += `${icons[i]} ${d[0]}: ${d[1].toFixed(1)}$\n`; // .toFixed(1) pour gagner un caractère
-        });
-        if (sorted.length === 0) text += "Waiting for gifts...";
-
-        const chatEditor = document.querySelector('.ql-editor');
-        if (chatEditor) {
-            chatEditor.innerHTML = text.split('\n').map(line => `<p>${line}</p>`).join('');
-            chatEditor.classList.remove('ql-blank');
-            chatEditor.focus();
-
+        const chat = document.querySelector('.ql-editor');
+        if (chat) {
+            chat.innerHTML = msg.split('\n').map(l => `<p>${l}</p>`).join('');
+            chat.classList.remove('ql-blank');
+            chat.focus();
             setTimeout(() => {
-                const enter = new KeyboardEvent('keydown', { bubbles: true, key: 'Enter', keyCode: 13 });
-                chatEditor.dispatchEvent(enter);
-            }, 300); // Envoi rapide
+                chat.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter', keyCode: 13 }));
+            }, 300);
         }
-
-        const btn = document.getElementById('btn-copy');
-        btn.innerText = "SENT! 🚀";
-        setTimeout(() => btn.innerText = "SEND", 1000);
     };
 
-    const observer = new MutationObserver(mutations => { for (const mutation of mutations) mutation.addedNodes.forEach(processNode); });
-    observer.observe(document.body, { childList: true, subtree: true });
-
+    // --- EVENT LISTENERS ---
+    document.getElementById('btn-sync').onclick = syncPrices;
+    document.getElementById('btn-reset').onclick = () => { totalValue = 0; donors = {}; updateUI(); console.log("%c♻ Tracker Reset", "color: #ff4d4d"); };
+    document.getElementById('btn-copy').onclick = sendLeaderboard;
+    
     document.getElementById('btn-start').onclick = () => {
         if (!isRunning) {
             const mins = parseFloat(document.getElementById('input-minutes').value) || 1;
             timeLeft = Math.floor(mins * 60);
             isRunning = true;
             document.getElementById('status-indicator').innerText = "LIVE"; document.getElementById('status-indicator').style.color = "#4CAF50";
-            document.getElementById('btn-start').innerText = "STOP";
-            timerInterval = setInterval(() => {
-                if (timeLeft > 0) { timeLeft--; document.getElementById('display-timer').innerText = `${Math.floor(timeLeft/60).toString().padStart(2,'0')}:${(timeLeft%60).toString().padStart(2,'0')}`; }
-                else { isRunning = false; clearInterval(timerInterval); document.getElementById('status-indicator').innerText = "OFF"; }
+            timerInterval = setInterval(() => { 
+                if (timeLeft > 0) {
+                    timeLeft--;
+                    document.getElementById('display-timer').innerText = `${Math.floor(timeLeft/60).toString().padStart(2,'0')}:${(timeLeft%60).toString().padStart(2,'0')}`;
+                } else {
+                    isRunning = false; clearInterval(timerInterval);
+                    document.getElementById('status-indicator').innerText = "OFF"; document.getElementById('status-indicator').style.color = "#ff4d4d";
+                }
             }, 1000);
         } else {
             isRunning = false; clearInterval(timerInterval);
-            document.getElementById('status-indicator').innerText = "OFF";
-            document.getElementById('btn-start').innerText = "START";
+            document.getElementById('status-indicator').innerText = "OFF"; document.getElementById('status-indicator').style.color = "#ff4d4d";
         }
     };
-    document.getElementById('btn-copy').onclick = copyAndSend;
-    document.getElementById('btn-reset').onclick = () => { totalGifts = 0; totalValue = 0; donors = {}; updateUI(); };
+
+    // Start
+    syncPrices();
+    setInterval(syncPrices, 600000);
+    const observer = new MutationObserver(m => m.forEach(mu => mu.addedNodes.forEach(processNode)));
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Drag Logic Simple
+    let isDragging = false, ox, oy;
+    document.getElementById('drag-handle').onmousedown = e => { isDragging = true; ox = e.clientX - dashboard.offsetLeft; oy = e.clientY - dashboard.offsetTop; };
+    window.onmousemove = e => { if (isDragging) { dashboard.style.left = (e.clientX - ox) + "px"; dashboard.style.top = (e.clientY - oy) + "px"; } };
+    window.onmouseup = () => isDragging = false;
 })();
