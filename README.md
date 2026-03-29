@@ -23,13 +23,13 @@ A lightweight Tampermonkey script designed to track, count, and filter gifts in 
 
 To use this script, you need a browser extension that can run "UserScripts" (such as Tampermonkey).
 
-    Install Tampermonkey:
+ Install Tampermonkey:
 
-        Go to tampermonkey.net and install the version for your browser (Chrome, Firefox, Edge).
+ Go to tampermonkey.net and install the version for your browser (Chrome, Firefox, Edge).
 
-    Import the Script:
+Import the Script:
 
-        👉 [CLICK HERE TO INSTALL THE SCRIPT](https://github.com/DebonairFab/epalgifttracker/raw/refs/heads/main/Epal%20Gift%20Counter.user.js)
+ 👉 [CLICK HERE TO INSTALL THE SCRIPT](https://github.com/DebonairFab/epalgifttracker/raw/refs/heads/main/Epal%20Gift%20Counter.user.js)
 
         Note: If the link opens as text, copy the code, click the Tampermonkey icon > "Create a new script", paste it, and save (Ctrl+S).
 
@@ -40,15 +40,15 @@ To use this script, you need a browser extension that can run "UserScripts" (suc
 🚀 2. How to Use
 Interface Overview
 
-    Target (Optional): Type the name of the person receiving the gifts (e.g., cakekkie). If left empty, it displays "(Everyone)" in the leaderboard.
+  Target (Optional): Type the name of the person receiving the gifts (e.g., cakekkie). If left empty, it displays "(Everyone)" in the leaderboard.
 
-    Timer: Set your desired session time in minutes (e.g., 3, 5, or 10 min).
+  Timer: Set your desired session time in minutes (e.g., 3, 5, or 10 min).
 
-    Start/Stop: The status indicator turns green (LIVE) when tracking is active.
+  Start/Stop: The status indicator turns green (LIVE) when tracking is active.
 
-    Send Button: Generates the leaderboard, copies it to your clipboard, and automatically sends it into the Epal chatroom.
+  Send Button: Generates the leaderboard, copies it to your clipboard, and automatically sends it into the Epal chatroom.
 
-    Reset: Clears all scores, donors, the timer, and the target field for a fresh start.
+  Reset: Clears all scores, donors, the timer, and the target field for a fresh start.
 
 📸 3. Visual Guide
 Setting a Target
@@ -68,15 +68,15 @@ GIFT LEADERBOARD (Everyone) 🏆
 2. PlayerB : 5.20 $
 3. PlayerC : 0.00 $
 
-    [ezgif-4d3ac94c0f28d8ab](https://github.com/user-attachments/assets/c892457c-611d-4edc-bd94-fe3f017314f2)
+   
 
 💎 Supported Gift Prices
 
 The script recognizes most standard gifts, including:
 
-    Heavenly Match (2000), Ace Reign (1600), Golden Ascension (1000), Loving Castle (500)...
+  Heavenly Match (2000), Ace Reign (1600), Golden Ascension (1000), Loving Castle (500)...
 
-    Rose, Thumbs Up, Curious Locket, Magic Donut, and more.
+   Rose, Thumbs Up, Curious Locket, Magic Donut, and more.
 
 💬 4. Feedback & Support
 
