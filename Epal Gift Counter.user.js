@@ -1,19 +1,16 @@
 // ==UserScript==
-// @name         Epal Gift Counter - Icon Right
-// @namespace    http://tampermonkey.net/
-// @version      1.9.8
-// @description  Tracker with Timer, target filter and custom gift icon on the right.
-// @author       Fab
-// @match        https://www.epal.gg/chill/chatroom/*
-// @downloadURL  https://raw.githubusercontent.com/DebonairFab/epalgifttracker/refs/heads/main/Epal%20Gift%20Counter.user.js
-// @updateURL    https://raw.githubusercontent.com/DebonairFab/epalgifttracker/refs/heads/main/Epal%20Gift%20Counter.user.js
-// @grant        none
+// @name          Epal Gift Counter
+// @namespace     http://tampermonkey.net/
+// @version       1.9.9
+// @description   Tracker with Timer, target filter and custom icon on the right.
+// @author        Fab
+// @match         https://www.epal.gg/chill/chatroom/*
+// @grant         none
 // ==/UserScript==
 
 (function() {
     'use strict';
 
-    // Ton icône personnalisée
     const customIcon = "https://raw.githubusercontent.com/DebonairFab/epalgifttracker/refs/heads/main/Sans%20titre.png";
 
     const giftPrices = {
@@ -39,7 +36,7 @@
 
     dashboard.innerHTML = `
         <div id="drag-handle" style="font-weight:bold; color:#ff4d89; margin-bottom:12px; display:flex; justify-content:space-between; font-size:11px; letter-spacing:1px; cursor:move; padding-bottom:5px; border-bottom:1px solid rgba(255,77,137,0.2);">
-            <span>🎁 GIFT TRACKER v1.9.8</span>
+            <span>🎁 GIFT TRACKER</span>
             <span id="status-indicator" style="color:#ff4d4d;">OFF</span>
         </div>
 
@@ -49,7 +46,7 @@
         </div>
 
         <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
-            <input type="number" id="input-minutes" value="30" min="1" style="width:45px; background:#222; border:1px solid #444; color:white; border-radius:4px; padding:4px; font-size:12px;">
+            <input type="number" id="input-minutes" value="3" min="1" style="width:45px; background:#222; border:1px solid #444; color:white; border-radius:4px; padding:4px; font-size:12px;">
             <span style="font-size:11px; color:#ccc;">min</span>
             <div id="display-timer" style="flex:1; text-align:right; font-family:monospace; font-size:20px; font-weight:bold; color:#4CAF50;">00:00</div>
         </div>
@@ -58,9 +55,9 @@
 
         <div style="margin-bottom:12px;">
             <div id="epal-count" style="font-size:11px; color:#aaa;">Gifts : 0</div>
-            <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
-                <div id="epal-value" style="font-size:1.8em; font-weight:bold; color:#ffce00;">0.00</div>
-                <img src="${customIcon}" style="width:24px; height:24px; object-fit:contain; display:block;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span id="epal-value-num" style="font-size:1.8em; font-weight:bold; color:#ffce00;">0.00</span>
+                <img src="${customIcon}" style="width:24px; height:24px; object-fit:contain;">
             </div>
         </div>
 
@@ -90,7 +87,8 @@
     // --- CORE LOGIC ---
     const updateUI = () => {
         document.getElementById('epal-count').innerText = `Gifts : ${totalGifts}`;
-        document.getElementById('epal-value').innerText = `${totalValue.toFixed(2)}`;
+        document.getElementById('epal-value-num').innerText = totalValue.toFixed(2);
+        
         const sorted = Object.entries(donors).sort(([,a],[,b]) => b-a).slice(0,3);
         let html = "";
         sorted.forEach((d, i) => {
@@ -114,6 +112,7 @@
         if (giftPart && giftPart.innerText.includes("gifted")) {
             const fullText = giftPart.innerText;
             const targetFilter = document.getElementById('input-target').value.trim();
+
             if (targetFilter !== "" && !fullText.toLowerCase().includes("gifted " + targetFilter.toLowerCase())) return;
 
             const messageContainer = giftPart.closest('.hover\\:bg-surface-element-normal');
@@ -146,7 +145,8 @@
     };
 
     const stopTracker = () => {
-        isRunning = false; clearInterval(timerInterval);
+        isRunning = false; 
+        clearInterval(timerInterval);
         document.getElementById('status-indicator').innerText = "OFF";
         document.getElementById('status-indicator').style.color = "#ff4d4d";
         document.getElementById('btn-start').innerText = "START";
@@ -156,12 +156,15 @@
     const startTracker = () => {
         const mins = parseFloat(document.getElementById('input-minutes').value) || 1;
         if (timeLeft <= 0) timeLeft = Math.floor(mins * 60);
+        
         isRunning = true;
         document.getElementById('status-indicator').innerText = "LIVE";
         document.getElementById('status-indicator').style.color = "#4CAF50";
         document.getElementById('btn-start').innerText = "STOP";
         document.getElementById('btn-start').style.background = "#ff4d4d";
+        
         document.getElementById('display-timer').innerText = formatTime(timeLeft);
+
         if (timerInterval) clearInterval(timerInterval);
         timerInterval = setInterval(() => {
             if (timeLeft > 0) {
