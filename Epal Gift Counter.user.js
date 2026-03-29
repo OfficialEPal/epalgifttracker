@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Epal Gift Tracker
 // @namespace    http://tampermonkey.net/
-// @version      3.0.0
+// @version      3.0.1
 // @description  Cloud Sync + Animations + Leaderboard Medals
 // @author       Fab
 // @match        https://www.epal.gg/chill/chatroom/*
@@ -128,8 +128,16 @@
                 const price = foundGift ? giftPrices[foundGift] : 0;
                 const totalAmount = price * quantity;
 
-                if (foundGift) console.log(`%c🎁 ${foundGift} x${quantity} from ${donorName}`, "color:#4CAF50; font-weight:bold;");
-                else console.warn(`%c❓ UNKNOWN: ${fullText}`, "color:#ff9800;");
+                if (foundGift) {
+                    console.log(
+                        `%c🎁 ${foundGift} x${quantity} | %cTo: ${targetFilter || "Everyone"} %c| From: ${donorName} | %cValue: $${totalAmount.toFixed(2)}`,
+                        "color:#4CAF50; font-weight:bold;",
+                        "color:#00d4ff;",
+                        "color:#ffffff;",
+                        "color:#ffce00; font-weight:bold;"
+                    );
+                } else {
+                    console.warn(`%c❓ UNKNOWN GIFT: ${fullText}`, "color:#ff9800;");
 
                 totalValue += totalAmount;
                 donors[donorName] = (donors[donorName] || 0) + totalAmount;
@@ -142,7 +150,7 @@
     document.getElementById('btn-sync').onclick = syncPrices;
 
     document.getElementById('btn-reset').onclick = () => {
-        if (confirm("⚠️ Reset everything ?")) {
+        if (confirm("⚠️ Reset everything to 0.00?")) {
             totalValue = 0; donors = {}; updateUI();
             console.log("%c♻ Tracker Reset Complete", "color: #ff4d4d");
         }
