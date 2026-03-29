@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Epal Gift Counter - Final Stable
+// @name         Epal Gift Counter
 // @namespace    http://tampermonkey.net/
 // @version      2.0.0
-// @description  Vérifié et stabilisé : Tracker de cadeaux avec Timer et Filtre.
+// @description  Gift tracker with timer and filter
 // @author       Fab
 // @match        https://www.epal.gg/chill/chatroom/*
 // @grant        none
