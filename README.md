@@ -8,7 +8,7 @@ A lightweight **Tampermonkey** script designed to track, count, and filter gifts
 
 ## ✨ Features
 
-*   **📈 Dollars Counter:** Automatically calculates the total value of gifts in dollars (💎).
+*   **📈 Buffs Counter:** Automatically calculates the total value of gifts in buffs.
 *   **🎯 Target Filtering:** Enter a username to only track gifts received by a specific person.
 *   **⏱️ Built-in Timer:** Set a duration (in minutes) and the tracker will automatically stop when the countdown reaches zero.
 *   **🏆 Top Donors:** Real-time leaderboard showing the top 3 most generous supporters of the session.
