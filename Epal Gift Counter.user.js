@@ -12,11 +12,15 @@
 (function() {
     'use strict';
 
-    const JSON_URL = "https://raw.githubusercontent.com/DebonairFab/epalgifttracker/refs/heads/main/prices.json";
-    const customIcon = "https://raw.githubusercontent.com/DebonairFab/epalgifttracker/refs/heads/main/Sans%20titre.png";
+    const JSON_URL = "https://raw.githubusercontent.com/OfficialEPal/epalgifttracker/main/prices.json";
+    const customIcon = "https://raw.githubusercontent.com/OfficialEPal/epalgifttracker/main/buff.png";
+    const GIFT_MESSAGE_SELECTOR = '.epal-live-chat.text-positive-variant-normal';
+    const MESSAGE_CONTAINER_SELECTOR = '.hover\\:bg-surface-element-normal';
+    const DONOR_SELECTOR = '.epal-name-gold, .epal-name-vip, .text-primary-variant-normal';
+    const RECENT_SIGNATURE_TTL_MS = 1500;
 
     const style = document.createElement('style');
-    style.innerHTML = `
+    style.textContent = `
         #epal-tracker-pro button { transition: all 0.2s ease; cursor: pointer; border: none; outline: none; }
         #epal-tracker-pro button:hover { filter: brightness(1.2); transform: translateY(-1px); }
         #epal-tracker-pro button:active { transform: translateY(1px) scale(0.96); }
@@ -29,12 +33,78 @@
     let giftPrices = { "Rose": 1, "Default": 0 };
     let totalValue = 0, isRunning = false, donors = {};
     let timerInterval = null, timeLeft = 0;
+    const processedGiftNodes = new WeakSet();
+    const recentMessageSignatures = new Map();
+
+    const normalizeText = (value) => value.replace(/\s+/g, ' ').trim();
+    const normalizeName = (value) => normalizeText(value).toLowerCase();
+    const cleanupRecentMessageSignatures = () => {
+        const cutoff = Date.now() - RECENT_SIGNATURE_TTL_MS;
+        for (const [signature, ts] of recentMessageSignatures.entries()) {
+            if (ts < cutoff) recentMessageSignatures.delete(signature);
+        }
+    };
+    const updateTimerDisplay = () => {
+        document.getElementById('display-timer').innerText = `${Math.floor(timeLeft / 60).toString().padStart(2, '0')}:${(timeLeft % 60).toString().padStart(2, '0')}`;
+    };
+    const setStatusIndicator = (text, color) => {
+        const indicator = document.getElementById('status-indicator');
+        if (indicator) {
+            indicator.innerText = text;
+            indicator.style.color = color;
+        }
+    };
+    const setRunningState = (running) => {
+        isRunning = running;
+        const btnStart = document.getElementById('btn-start');
+        btnStart.innerText = running ? "STOP" : "START";
+        btnStart.style.background = running ? "#f44336" : "#4CAF50";
+        setStatusIndicator(running ? "LIVE" : "OFF", running ? "#4CAF50" : "#ff4d4d");
+        if (!running && timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+    };
+    const appendParagraphs = (container, lines) => {
+        container.replaceChildren();
+        lines.forEach((line) => {
+            const paragraph = document.createElement('p');
+            paragraph.textContent = line;
+            container.appendChild(paragraph);
+        });
+    };
+    const findGiftName = (fullText) => {
+        const normalized = fullText.toLowerCase();
+        return Object.keys(giftPrices)
+            .sort((a, b) => b.length - a.length)
+            .find((giftName) => normalized.includes(giftName.toLowerCase())) || null;
+    };
+    const extractRecipientName = (fullText, giftName) => {
+        if (!giftName) return null;
+        const escapedGiftName = giftName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+        const match = fullText.match(new RegExp(`gifted\\s+(.+?)\\s+(?:an?\\s+)?${escapedGiftName}(?:\\s+x\\d+)?\\s*$`, 'i'));
+        return match ? normalizeText(match[1]) : null;
+    };
+    const buildMessageSignature = (donorName, recipientName, giftName, quantity, fullText) => (
+        `${normalizeName(donorName)}|${normalizeName(recipientName || '')}|${normalizeName(giftName || '')}|${quantity}|${normalizeText(fullText)}`
+    );
 
     async function syncPrices() {
         try {
             const response = await fetch(JSON_URL);
             if (!response.ok) throw new Error("Sync failed");
-            giftPrices = await response.json();
+            const remotePrices = await response.json();
+            if (!remotePrices || typeof remotePrices !== 'object' || Array.isArray(remotePrices)) {
+                throw new Error("Invalid prices format");
+            }
+            giftPrices = Object.fromEntries(
+                Object.entries(remotePrices)
+                    .filter(([key, value]) => typeof key === 'string' && Number.isFinite(Number(value)))
+                    .map(([key, value]) => [key, Number(value)])
+            );
+            if (Object.keys(giftPrices).length === 0) {
+                throw new Error("No valid prices found");
+            }
             console.log("%c✅ Prices Synced", "color: #00d4ff; font-weight: bold;");
             const indicator = document.getElementById('status-indicator');
             if(indicator) {
@@ -84,54 +154,90 @@
         document.getElementById('epal-value-num').innerText = totalValue.toFixed(2);
         const sorted = Object.entries(donors).sort(([,a],[,b]) => b-a).slice(0,3);
         const medals = ["🥇", "🥈", "🥉"];
-        let html = "";
-        sorted.forEach((d, i) => {
-            html += `<div class="gift-row"><span>${medals[i]} ${d[0]}</span><span style="color:#ffce00; font-weight:bold;">${d[1].toFixed(2)} $</span></div>`;
+        const topDonors = document.getElementById('top-donors');
+        topDonors.replaceChildren();
+        if (sorted.length === 0) {
+            topDonors.textContent = "Waiting for gifts...";
+            return;
+        }
+
+        sorted.forEach(([donorName, amount], i) => {
+            const row = document.createElement('div');
+            row.className = 'gift-row';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = `${medals[i]} ${donorName}`;
+
+            const amountSpan = document.createElement('span');
+            amountSpan.style.color = '#ffce00';
+            amountSpan.style.fontWeight = 'bold';
+            amountSpan.textContent = `${amount.toFixed(2)} $`;
+
+            row.append(nameSpan, amountSpan);
+            topDonors.appendChild(row);
         });
-        document.getElementById('top-donors').innerHTML = html || "Waiting for gifts...";
+    };
+
+    const processGiftElement = (giftPart) => {
+        if (!isRunning || processedGiftNodes.has(giftPart)) return;
+
+        processedGiftNodes.add(giftPart);
+        const fullText = normalizeText(giftPart.innerText || '');
+        if (!fullText || !fullText.toLowerCase().includes("gifted")) return;
+
+        const qtyMatch = fullText.match(/x(\d+)\s*$/i);
+        if (!qtyMatch) return;
+
+        const quantity = Number.parseInt(qtyMatch[1], 10);
+        if (!Number.isFinite(quantity) || quantity <= 0) return;
+
+        const foundGift = findGiftName(fullText);
+        if (!foundGift) {
+            console.warn(`%c❓ UNKNOWN GIFT: ${fullText}`, "color:#ff9800;");
+            return;
+        }
+
+        const recipientName = extractRecipientName(fullText, foundGift);
+        const targetFilter = normalizeText(document.getElementById('input-target').value);
+        if (targetFilter && (!recipientName || normalizeName(recipientName) !== normalizeName(targetFilter))) {
+            return;
+        }
+
+        const messageContainer = giftPart.closest(MESSAGE_CONTAINER_SELECTOR);
+        let donorName = "User";
+        if (messageContainer) {
+            const donorElem = messageContainer.querySelector(DONOR_SELECTOR);
+            if (donorElem) donorName = normalizeText(donorElem.innerText);
+        }
+
+        cleanupRecentMessageSignatures();
+        const signature = buildMessageSignature(donorName, recipientName, foundGift, quantity, fullText);
+        if (recentMessageSignatures.has(signature)) return;
+        recentMessageSignatures.set(signature, Date.now());
+
+        const price = Number(giftPrices[foundGift]) || 0;
+        const totalAmount = price * quantity;
+        console.log(
+            `%c🎁 [GIFT] ${foundGift} x${quantity} | %cTo: ${recipientName || targetFilter || "Everyone"} %c| From: ${donorName} | %cValue: $${totalAmount.toFixed(2)}`,
+            "color:#4CAF50; font-weight:bold;",
+            "color:#00d4ff;",
+            "color:#ffffff;",
+            "color:#ffce00; font-weight:bold;"
+        );
+
+        totalValue += totalAmount;
+        donors[donorName] = (donors[donorName] || 0) + totalAmount;
+        updateUI();
     };
 
     const processNode = (node) => {
-        if (!isRunning || node.nodeType !== 1) return;
-        const giftPart = node.querySelector('.epal-live-chat.text-positive-variant-normal');
-        if (giftPart && giftPart.innerText.includes("gifted")) {
-            const fullText = giftPart.innerText;
-            const targetFilter = document.getElementById('input-target').value.trim();
-            if (targetFilter !== "" && !fullText.toLowerCase().includes("gifted " + targetFilter.toLowerCase())) return;
+        if (!isRunning || node.nodeType !== Node.ELEMENT_NODE) return;
 
-            const messageContainer = giftPart.closest('.hover\\:bg-surface-element-normal');
-            let donorName = "User";
-            if (messageContainer) {
-                const donorElem = messageContainer.querySelector('.epal-name-gold, .epal-name-vip, .text-primary-variant-normal');
-                if (donorElem) donorName = donorElem.innerText.trim();
-            }
-
-            const qtyMatch = fullText.match(/x(\d+)\s*$/);
-            if (qtyMatch) {
-                const quantity = parseInt(qtyMatch[1]);
-                let foundGift = null;
-                for (let key in giftPrices) { if (fullText.toLowerCase().includes(key.toLowerCase())) { foundGift = key; break; } }
-                const price = foundGift ? giftPrices[foundGift] : 0;
-                const totalAmount = price * quantity;
-
-                // --- DETAILED LOGS ---
-                if (foundGift) {
-                    console.log(
-                        `%c🎁 [GIFT] ${foundGift} x${quantity} | %cTo: ${targetFilter || "Everyone"} %c| From: ${donorName} | %cValue: $${totalAmount.toFixed(2)}`, 
-                        "color:#4CAF50; font-weight:bold;", 
-                        "color:#00d4ff;", 
-                        "color:#ffffff;", 
-                        "color:#ffce00; font-weight:bold;"
-                    );
-                } else {
-                    console.warn(`%c❓ UNKNOWN GIFT: ${fullText}`, "color:#ff9800;");
-                }
-
-                totalValue += totalAmount; 
-                donors[donorName] = (donors[donorName] || 0) + totalAmount;
-                updateUI();
-            }
+        if (node.matches?.(GIFT_MESSAGE_SELECTOR)) {
+            processGiftElement(node);
         }
+
+        node.querySelectorAll?.(GIFT_MESSAGE_SELECTOR).forEach(processGiftElement);
     };
 
     document.getElementById('btn-sync').onclick = syncPrices;
@@ -145,13 +251,14 @@
         const target = document.getElementById('input-target').value.trim() || "Everyone";
         const sorted = Object.entries(donors).sort(([,a],[,b]) => b-a).slice(0,3);
         const medals = ["🥇","🥈","🥉"];
-        let msg = `🏆 TOP DONORS (${target})\n`;
-        sorted.forEach((d, i) => msg += `${medals[i]} ${d[0]}: ${d[1].toFixed(1)}$\n`);
+        const lines = [`🏆 TOP DONORS (${target})`];
+        sorted.forEach((d, i) => lines.push(`${medals[i]} ${d[0]}: ${d[1].toFixed(1)}$`));
         const chat = document.querySelector('.ql-editor');
         if (chat) {
-            chat.innerHTML = msg.split('\n').map(l => `<p>${l}</p>`).join('');
+            appendParagraphs(chat, lines);
             chat.focus();
             setTimeout(() => {
+                chat.dispatchEvent(new Event('input', { bubbles: true }));
                 chat.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter', keyCode: 13 }));
                 const btn = document.getElementById('btn-copy');
                 btn.innerText = "SENT !"; btn.style.background = "#4CAF50"; btn.style.color = "white";
@@ -163,32 +270,44 @@
     document.getElementById('btn-start').onclick = function() {
         if (!isRunning) {
             const mins = parseFloat(document.getElementById('input-minutes').value) || 1;
-            timeLeft = Math.floor(mins * 60); isRunning = true;
-            this.innerText = "STOP"; this.style.background = "#f44336";
-            document.getElementById('status-indicator').innerText = "LIVE"; document.getElementById('status-indicator').style.color = "#4CAF50";
+            timeLeft = Math.floor(mins * 60);
+            setRunningState(true);
+            updateTimerDisplay();
             timerInterval = setInterval(() => { 
                 if (timeLeft > 0) {
                     timeLeft--;
-                    document.getElementById('display-timer').innerText = `${Math.floor(timeLeft/60).toString().padStart(2,'0')}:${(timeLeft%60).toString().padStart(2,'0')}`;
+                    updateTimerDisplay();
                 } else {
-                    isRunning = false; clearInterval(timerInterval);
-                    this.innerText = "START"; this.style.background = "#4CAF50";
-                    document.getElementById('status-indicator').innerText = "OFF"; document.getElementById('status-indicator').style.color = "#ff4d4d";
+                    setRunningState(false);
                 }
             }, 1000);
         } else {
-            isRunning = false; clearInterval(timerInterval);
-            this.innerText = "START"; this.style.background = "#4CAF50";
-            document.getElementById('status-indicator').innerText = "OFF"; document.getElementById('status-indicator').style.color = "#ff4d4d";
+            setRunningState(false);
         }
     };
 
     syncPrices();
     const observer = new MutationObserver(m => m.forEach(mu => mu.addedNodes.forEach(processNode)));
     observer.observe(document.body, { childList: true, subtree: true });
+    updateUI();
+    updateTimerDisplay();
 
     let isDragging = false, ox, oy;
-    document.getElementById('drag-handle').onmousedown = e => { isDragging = true; ox = e.clientX - dashboard.offsetLeft; oy = e.clientY - dashboard.offsetTop; };
-    window.onmousemove = e => { if (isDragging) { dashboard.style.left = (e.clientX - ox) + "px"; dashboard.style.top = (e.clientY - oy) + "px"; } };
-    window.onmouseup = () => isDragging = false;
+    const handleDragMove = (e) => {
+        if (!isDragging) return;
+        dashboard.style.left = (e.clientX - ox) + "px";
+        dashboard.style.top = (e.clientY - oy) + "px";
+    };
+    const stopDragging = () => {
+        isDragging = false;
+        window.removeEventListener('mousemove', handleDragMove);
+        window.removeEventListener('mouseup', stopDragging);
+    };
+    document.getElementById('drag-handle').addEventListener('mousedown', (e) => {
+        isDragging = true;
+        ox = e.clientX - dashboard.offsetLeft;
+        oy = e.clientY - dashboard.offsetTop;
+        window.addEventListener('mousemove', handleDragMove);
+        window.addEventListener('mouseup', stopDragging);
+    });
 })();

@@ -1,6 +1,6 @@
 # 🎁 Epal Gift Counter — Complete Guide & Documentation
 
-[![Version](https://img.shields.io/badge/version-2.3.1-ff4d89.svg)](https://github.com/DebonairFab/epalgifttracker)
+[![Version](https://img.shields.io/badge/version-2.3.1-ff4d89.svg)](https://github.com/OfficialEPal/epalgifttracker)
 [![Platform](https://img.shields.io/badge/platform-Epal.gg-00d4ff.svg)](https://www.epal.gg/)
 [![License](https://img.shields.io/badge/license-Community-lightgrey.svg)](#)
 
@@ -33,7 +33,7 @@ To use this script, you need a browser extension that can run "UserScripts" (suc
 1.  **Install Tampermonkey:**
     Go to [tampermonkey.net](https://www.tampermonkey.net/) and install the version for your browser (Chrome, Firefox, Edge).
 2.  **Import the Script:**
-    👉 **[CLICK HERE TO INSTALL THE SCRIPT](https://github.com/DebonairFab/epalgifttracker/raw/refs/heads/main/Epal%20Gift%20Counter.user.js)**
+    👉 **[CLICK HERE TO INSTALL THE SCRIPT](https://github.com/OfficialEPal/epalgifttracker/raw/refs/heads/main/Epal%20Gift%20Counter.user.js)**
     <details><summary><b>Note:</b></summary> If the link opens as text, copy the code, click the Tampermonkey icon > "Create a new script", paste it, and save (Ctrl+S).*</details>
 3.  **Activate:**
     Navigate to any [Epal Chatroom](https://www.epal.gg/arcade/). The tracker will appear on the left side of your screen.
